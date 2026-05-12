@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Import Records — CapSU Service Records{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <h2 class="fw-bold text-primary mb-3">
+            <i class="bi bi-upload me-2"></i>Import from Excel
+        </h2>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white fw-semibold">Upload Excel File</div>
+            <div class="card-body">
+                <form method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Select .xlsx File</label>
+                        <input type="file" name="file" class="form-control" accept=".xlsx" required>
+                        <div class="form-text">Only Excel (.xlsx) files are accepted.</div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-upload me-1"></i>Import Records
+                    </button>
+                    <a href="{{ url_for('import_export.download_sample_template') }}"
+                       class="btn btn-outline-secondary ms-2">
+                        <i class="bi bi-download me-1"></i>Download Sample Template
+                    </a>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold">
+                <i class="bi bi-info-circle me-2 text-info"></i>Required Excel Column Format
+            </div>
+            <div class="card-body">
+                <p class="text-muted small">Your Excel file must have a header row with the following columns
+                    (column names must match exactly, including case):</p>
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered small">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Column Name</th>
+                                <th>Required</th>
+                                <th>Example</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>Surname</code></td><td><span class="badge bg-danger">Yes</span></td><td>VILLANUEVA</td></tr>
+                            <tr><td><code>Given Name</code></td><td><span class="badge bg-danger">Yes</span></td><td>MARY ROSE</td></tr>
+                            <tr><td><code>Middle Name</code></td><td><span class="badge bg-secondary">No</span></td><td>PRITOS</td></tr>
+                            <tr><td><code>Birth Date</code></td><td><span class="badge bg-secondary">No</span></td><td>May 14, 1989</td></tr>
+                            <tr><td><code>Birth Place</code></td><td><span class="badge bg-secondary">No</span></td><td>Bato, Roxas City</td></tr>
+                            <tr><td><code>Date From</code></td><td><span class="badge bg-secondary">No</span></td><td>11/28/2014</td></tr>
+                            <tr><td><code>Date To</code></td><td><span class="badge bg-secondary">No</span></td><td>12/31/2014</td></tr>
+                            <tr><td><code>Designation</code></td><td><span class="badge bg-secondary">No</span></td><td>Teacher I</td></tr>
+                            <tr><td><code>Status</code></td><td><span class="badge bg-secondary">No</span></td><td>Reg. (P)</td></tr>
+                            <tr><td><code>Monthly Salary</code></td><td><span class="badge bg-secondary">No</span></td><td>18549.00</td></tr>
+                            <tr><td><code>Annual Salary</code></td><td><span class="badge bg-secondary">No</span></td><td>222588.00</td></tr>
+                            <tr><td><code>Station/Place of</code></td><td><span class="badge bg-secondary">No</span></td><td>CapSU - Pont.</td></tr>
+                            <tr><td><code>Branch</code></td><td><span class="badge bg-secondary">No</span></td><td>National</td></tr>
+                            <tr><td><code>LV ABS WO Pay</code></td><td><span class="badge bg-secondary">No</span></td><td>None</td></tr>
+                            <tr><td><code>Separation Date</code></td><td><span class="badge bg-secondary">No</span></td><td>(leave blank)</td></tr>
+                            <tr><td><code>Separation Cause</code></td><td><span class="badge bg-secondary">No</span></td><td>NBC #540</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="alert alert-info small mt-2">
+                    <i class="bi bi-lightbulb me-1"></i>
+                    <strong>Tip:</strong> Each row represents one service record entry.
+                    Multiple rows with the same Surname + Given Name will be linked to the same employee.
+                    If the employee doesn't exist yet, they will be created automatically.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

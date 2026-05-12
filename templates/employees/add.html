@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Add Employee — CapSU Service Records{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center mb-3">
+            <a href="{{ url_for('employees.list_employees') }}" class="btn btn-outline-secondary me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <h2 class="fw-bold text-primary mb-0">
+                <i class="bi bi-person-plus me-2"></i>Add Employee
+            </h2>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form method="post">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Surname <span class="text-danger">*</span></label>
+                            <input type="text" name="surname" class="form-control"
+                                   value="{{ form.get('surname', '') }}" required
+                                   placeholder="e.g., VILLANUEVA">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Given Name <span class="text-danger">*</span></label>
+                            <input type="text" name="given_name" class="form-control"
+                                   value="{{ form.get('given_name', '') }}" required
+                                   placeholder="e.g., MARY ROSE">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Middle Name</label>
+                            <input type="text" name="middle_name" class="form-control"
+                                   value="{{ form.get('middle_name', '') }}"
+                                   placeholder="e.g., PRITOS">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Maiden Name</label>
+                            <input type="text" name="maiden_name" class="form-control"
+                                   value="{{ form.get('maiden_name', '') }}"
+                                   placeholder="(if applicable)">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Date of Birth</label>
+                            <input type="text" name="birth_date" class="form-control"
+                                   value="{{ form.get('birth_date', '') }}"
+                                   placeholder="e.g., May 14, 1989">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Place of Birth</label>
+                            <input type="text" name="birth_place" class="form-control"
+                                   value="{{ form.get('birth_place', '') }}"
+                                   placeholder="e.g., Bato, Roxas City">
+                        </div>
+                    </div>
+                    <hr class="my-4">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-1"></i>Save Employee
+                        </button>
+                        <a href="{{ url_for('employees.list_employees') }}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

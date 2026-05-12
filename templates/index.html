@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — CapSU Service Records{% endblock %}
+{% block content %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h2 class="fw-bold text-primary">
+            <i class="bi bi-speedometer2 me-2"></i>Dashboard
+        </h2>
+        <p class="text-muted">Welcome to the Capiz State University Service Records System.</p>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <div class="col-md-6 col-lg-4">
+        <div class="card border-primary shadow-sm h-100">
+            <div class="card-body d-flex align-items-center">
+                <div class="fs-1 text-primary me-3"><i class="bi bi-people-fill"></i></div>
+                <div>
+                    <div class="fs-2 fw-bold">{{ total_employees }}</div>
+                    <div class="text-muted">Total Employees</div>
+                </div>
+            </div>
+            <div class="card-footer bg-transparent">
+                <a href="{{ url_for('employees.list_employees') }}" class="btn btn-sm btn-outline-primary">
+                    View All <i class="bi bi-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-lg-4">
+        <div class="card border-success shadow-sm h-100">
+            <div class="card-body d-flex align-items-center">
+                <div class="fs-1 text-success me-3"><i class="bi bi-file-earmark-text-fill"></i></div>
+                <div>
+                    <div class="fs-2 fw-bold">{{ total_records }}</div>
+                    <div class="text-muted">Total Service Records</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-12 col-lg-4">
+        <div class="card border-info shadow-sm h-100">
+            <div class="card-body">
+                <h5 class="card-title text-info"><i class="bi bi-lightning-fill me-2"></i>Quick Actions</h5>
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('employees.add_employee') }}" class="btn btn-primary">
+                        <i class="bi bi-person-plus me-1"></i>Add Employee
+                    </a>
+                    <a href="{{ url_for('import_export.import_records') }}" class="btn btn-outline-secondary">
+                        <i class="bi bi-upload me-1"></i>Import Excel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-header bg-white fw-semibold">
+        <i class="bi bi-clock-history me-2 text-secondary"></i>Recently Added Employees
+    </div>
+    <div class="card-body p-0">
+        {% if recent_employees %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Surname</th>
+                        <th>Given Name</th>
+                        <th>Birth Date</th>
+                        <th>Records</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for emp in recent_employees %}
+                    <tr>
+                        <td class="fw-semibold">{{ emp.surname }}</td>
+                        <td>{{ emp.given_name }}</td>
+                        <td>{{ emp.birth_date or '—' }}</td>
+                        <td><span class="badge bg-secondary">{{ emp.service_records|length }}</span></td>
+                        <td>
+                            <a href="{{ url_for('employees.view_employee', employee_id=emp.id) }}"
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-eye"></i> View
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="p-4 text-center text-muted">
+            <i class="bi bi-inbox fs-3 d-block mb-2"></i>
+            No employees yet. <a href="{{ url_for('employees.add_employee') }}">Add the first one</a> or
+            <a href="{{ url_for('import_export.import_records') }}">import from Excel</a>.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
