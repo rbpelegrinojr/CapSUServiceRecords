@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Edit Service Record — CapSU Service Records{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="d-flex align-items-center mb-3">
+            <a href="{{ url_for('employees.view_employee', employee_id=employee.id) }}"
+               class="btn btn-outline-secondary me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h2 class="fw-bold text-primary mb-0">
+                    <i class="bi bi-pencil-square me-2"></i>Edit Service Record
+                </h2>
+                <small class="text-muted">For: <strong>{{ employee.surname }}, {{ employee.given_name }}</strong></small>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form method="post">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Date From</label>
+                            <input type="text" name="date_from" class="form-control"
+                                   value="{{ record.date_from or '' }}"
+                                   placeholder="e.g., 11/28/2014">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Date To</label>
+                            <input type="text" name="date_to" class="form-control"
+                                   value="{{ record.date_to or '' }}"
+                                   placeholder="e.g., 12/31/2014 or to date">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Designation</label>
+                            <input type="text" name="designation" class="form-control"
+                                   value="{{ record.designation or '' }}"
+                                   placeholder="e.g., Teacher I">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Status</label>
+                            <input type="text" name="status" class="form-control"
+                                   value="{{ record.status or '' }}"
+                                   placeholder="e.g., Reg. (P), -do-">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Monthly Salary</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₱</span>
+                                <input type="number" name="monthly_salary" class="form-control"
+                                       value="{{ record.monthly_salary or '' }}"
+                                       step="0.01" min="0" placeholder="0.00">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Annual Salary</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₱</span>
+                                <input type="number" name="annual_salary" class="form-control"
+                                       value="{{ record.annual_salary or '' }}"
+                                       step="0.01" min="0" placeholder="0.00">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Station / Place of</label>
+                            <input type="text" name="station_place_of" class="form-control"
+                                   value="{{ record.station_place_of or '' }}"
+                                   placeholder="e.g., CapSU - Pont.">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Branch</label>
+                            <input type="text" name="branch" class="form-control"
+                                   value="{{ record.branch or '' }}"
+                                   placeholder="e.g., National, -do-">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">L/V Abs W/O Pay</label>
+                            <input type="text" name="lv_abs_wo_pay" class="form-control"
+                                   value="{{ record.lv_abs_wo_pay or '' }}"
+                                   placeholder="e.g., None">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Separation Date</label>
+                            <input type="text" name="separation_date" class="form-control"
+                                   value="{{ record.separation_date or '' }}"
+                                   placeholder="Leave blank if still active">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Separation Cause</label>
+                            <input type="text" name="separation_cause" class="form-control"
+                                   value="{{ record.separation_cause or '' }}"
+                                   placeholder="e.g., Promotion">
+                        </div>
+                    </div>
+                    <hr class="my-4">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bi bi-check-circle me-1"></i>Update Record
+                        </button>
+                        <a href="{{ url_for('employees.view_employee', employee_id=employee.id) }}"
+                           class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

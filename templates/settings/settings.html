@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Settings — CapSU Service Records{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <h2 class="fw-bold text-primary mb-3">
+            <i class="bi bi-gear me-2"></i>System Settings
+        </h2>
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-white fw-semibold">Document / Certifier Settings</div>
+            <div class="card-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">University Name</label>
+                        <input type="text" name="university_name" class="form-control"
+                               value="{{ settings.get('university_name', '') }}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">University Location</label>
+                        <input type="text" name="university_location" class="form-control"
+                               value="{{ settings.get('university_location', '') }}"
+                               placeholder="e.g., Pontevedra, Capiz">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Certifier Name</label>
+                        <input type="text" name="certifier_name" class="form-control"
+                               value="{{ settings.get('certifier_name', '') }}"
+                               placeholder="e.g., PET ROANA B. BATACANDOLO, DPA">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Certifier Title</label>
+                        <input type="text" name="certifier_title" class="form-control"
+                               value="{{ settings.get('certifier_title', '') }}"
+                               placeholder="e.g., Designated HRMP">
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-save me-1"></i>Save Settings
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mt-4">
+            <div class="card-header bg-white fw-semibold">
+                <i class="bi bi-info-circle me-2 text-info"></i>About These Settings
+            </div>
+            <div class="card-body text-muted small">
+                <ul>
+                    <li><strong>University Name &amp; Location</strong> — Appear in the header of the DOCX service record.</li>
+                    <li><strong>Certifier Name</strong> — The person who certifies the document (printed in the footer).</li>
+                    <li><strong>Certifier Title</strong> — The official title of the certifier (e.g., Designated HRMP).</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

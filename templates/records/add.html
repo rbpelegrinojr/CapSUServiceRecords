@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Add Service Record — CapSU Service Records{% endblock %}
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="d-flex align-items-center mb-3">
+            <a href="{{ url_for('employees.view_employee', employee_id=employee.id) }}"
+               class="btn btn-outline-secondary me-3">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <div>
+                <h2 class="fw-bold text-primary mb-0">
+                    <i class="bi bi-plus-circle me-2"></i>Add Service Record
+                </h2>
+                <small class="text-muted">For: <strong>{{ employee.surname }}, {{ employee.given_name }}</strong></small>
+            </div>
+        </div>
+
+        <div class="card shadow-sm">
+            <div class="card-body">
+                <form method="post">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Date From</label>
+                            <input type="text" name="date_from" class="form-control"
+                                   value="{{ form.get('date_from', '') }}"
+                                   placeholder="e.g., 11/28/2014">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Date To</label>
+                            <input type="text" name="date_to" class="form-control"
+                                   value="{{ form.get('date_to', '') }}"
+                                   placeholder="e.g., 12/31/2014 or to date">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Designation</label>
+                            <input type="text" name="designation" class="form-control"
+                                   value="{{ form.get('designation', '') }}"
+                                   placeholder="e.g., Teacher I, Instructor I">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Status</label>
+                            <input type="text" name="status" class="form-control"
+                                   value="{{ form.get('status', '') }}"
+                                   placeholder="e.g., Reg. (P), Temporary, -do-">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Monthly Salary</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₱</span>
+                                <input type="number" name="monthly_salary" class="form-control"
+                                       value="{{ form.get('monthly_salary', '') }}"
+                                       step="0.01" min="0" placeholder="0.00">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Annual Salary</label>
+                            <div class="input-group">
+                                <span class="input-group-text">₱</span>
+                                <input type="number" name="annual_salary" class="form-control"
+                                       value="{{ form.get('annual_salary', '') }}"
+                                       step="0.01" min="0" placeholder="0.00">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Station / Place of</label>
+                            <input type="text" name="station_place_of" class="form-control"
+                                   value="{{ form.get('station_place_of', '') }}"
+                                   placeholder="e.g., CapSU - Pont.">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold">Branch</label>
+                            <input type="text" name="branch" class="form-control"
+                                   value="{{ form.get('branch', '') }}"
+                                   placeholder="e.g., National, N.C., -do-">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">L/V Abs W/O Pay</label>
+                            <input type="text" name="lv_abs_wo_pay" class="form-control"
+                                   value="{{ form.get('lv_abs_wo_pay', '') }}"
+                                   placeholder="e.g., None, -do-">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Separation Date</label>
+                            <input type="text" name="separation_date" class="form-control"
+                                   value="{{ form.get('separation_date', '') }}"
+                                   placeholder="Leave blank if still active">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Separation Cause</label>
+                            <input type="text" name="separation_cause" class="form-control"
+                                   value="{{ form.get('separation_cause', '') }}"
+                                   placeholder="e.g., NBC #540, Promotion">
+                        </div>
+                    </div>
+                    <hr class="my-4">
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-check-circle me-1"></i>Save Record
+                        </button>
+                        <a href="{{ url_for('employees.view_employee', employee_id=employee.id) }}"
+                           class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
