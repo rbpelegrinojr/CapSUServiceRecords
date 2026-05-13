@@ -122,7 +122,7 @@ Each row = one service record. Rows with the same Surname + Given Name are linke
 
 1. Open an employee's profile
 2. Click **Print Service Record**
-3. A PDF preview opens in a new tab for printing
+3. A PDF preview opens in a new tab and triggers the print dialog
 
 ### Exporting to Excel
 
