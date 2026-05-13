@@ -32,6 +32,7 @@
     <iframe id="pdfFrame" src="{{ pdf_url }}" title="Service Record PDF"></iframe>
     <script>
         (function () {
+            var PRINT_DELAY_MS = 1200; // Allow iframe PDF viewer time to initialize before print()
             var frame = document.getElementById('pdfFrame');
             var errorMsg = document.getElementById('errorMsg');
 
@@ -47,7 +48,7 @@
             frame.addEventListener('load', function () {
                 setTimeout(function () {
                     window.print();
-                }, 1200);
+                }, PRINT_DELAY_MS);
             });
         })();
     </script>
