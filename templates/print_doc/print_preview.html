@@ -15,23 +15,42 @@
             height: 100%;
             border: 0;
         }
+        #errorMsg {
+            display: none;
+            padding: 2rem;
+            font-family: sans-serif;
+            color: #842029;
+            background: #f8d7da;
+        }
     </style>
 </head>
 <body>
+    <div id="errorMsg">
+        ⚠️ The PDF could not be loaded. Please go back and try again. Make sure
+        LibreOffice (Linux/macOS) or Microsoft Word (Windows) is installed.
+    </div>
     <iframe id="pdfFrame" src="{{ pdf_url }}" title="Service Record PDF"></iframe>
     <script>
-        window.addEventListener('load', function () {
-            const printDelayMs = 1200; // Allow iframe PDF viewer time to initialize before print()
-            setTimeout(function () {
-                const frame = document.getElementById('pdfFrame');
-                if (frame && frame.contentWindow) {
-                    frame.contentWindow.focus();
-                    frame.contentWindow.print();
-                } else {
+        (function () {
+            var PRINT_DELAY_MS = 1200; // Allow iframe PDF viewer time to initialize before print()
+            var frame = document.getElementById('pdfFrame');
+            var errorMsg = document.getElementById('errorMsg');
+
+            frame.addEventListener('error', function () {
+                frame.style.display = 'none';
+                errorMsg.style.display = 'block';
+            });
+
+            // Wait for the iframe to finish loading, then trigger print on the
+            // main window. Calling print() on contentWindow is blocked by most
+            // browsers when the iframe contains a PDF, so window.print() is the
+            // reliable cross-browser approach.
+            frame.addEventListener('load', function () {
+                setTimeout(function () {
                     window.print();
-                }
-            }, printDelayMs);
-        });
+                }, PRINT_DELAY_MS);
+            });
+        })();
     </script>
 </body>
 </html>
