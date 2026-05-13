@@ -2,7 +2,8 @@ import os
 import tempfile
 from datetime import datetime
 
-from flask import Blueprint, flash, make_response, redirect, url_for
+from docx2pdf import convert
+from flask import Blueprint, current_app, flash, make_response, redirect, url_for
 from docx import Document
 from docx.shared import Pt, Inches, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -150,27 +151,20 @@ def print_service_record(employee_id):
                     _set_cell_text(cells[i], val, font_size=8)
                     _set_cell_borders(cells[i])
 
-    docx_path = None
-    pdf_path = None
     try:
-        with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as tmp_docx:
-            docx_path = tmp_docx.name
-        doc.save(docx_path)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            docx_path = os.path.join(temp_dir, 'service_record.docx')
+            pdf_path = os.path.join(temp_dir, 'service_record.pdf')
 
-        pdf_path = docx_path.replace('.docx', '.pdf')
-        from docx2pdf import convert
+            doc.save(docx_path)
+            convert(docx_path, pdf_path)
 
-        convert(docx_path, pdf_path)
-        with open(pdf_path, 'rb') as pdf_file:
-            pdf_bytes = pdf_file.read()
-    except Exception as e:
-        flash(f'PDF conversion failed: {e}', 'danger')
+            with open(pdf_path, 'rb') as pdf_file:
+                pdf_bytes = pdf_file.read()
+    except Exception:
+        current_app.logger.exception('PDF conversion failed for employee_id=%s', employee_id)
+        flash('PDF conversion failed. Please try again or contact support.', 'danger')
         return redirect(url_for('employees.view_employee', employee_id=employee_id))
-    finally:
-        if docx_path and os.path.exists(docx_path):
-            os.unlink(docx_path)
-        if pdf_path and os.path.exists(pdf_path):
-            os.unlink(pdf_path)
 
     filename = f'ServiceRecord_{emp.surname}_{emp.given_name}.pdf'.replace(' ', '_')
     response = make_response(pdf_bytes)

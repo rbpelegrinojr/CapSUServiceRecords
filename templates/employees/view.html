@@ -47,7 +47,8 @@
                 <a href="{{ url_for('print_doc.print_service_record', employee_id=employee.id) }}"
                    class="btn btn-primary"
                    target="_blank"
-                   rel="noopener">
+                   rel="noopener"
+                   aria-label="Print Service Record (opens in new window)">
                     <i class="bi bi-file-pdf me-1"></i>Print Service Record
                 </a>
                 <a href="{{ url_for('import_export.export_employee', employee_id=employee.id) }}"
