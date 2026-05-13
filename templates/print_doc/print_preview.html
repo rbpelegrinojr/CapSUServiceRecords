@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Print Service Record</title>
+    <style>
+        html, body {
+            margin: 0;
+            height: 100%;
+            background: #f8f9fa;
+        }
+        #pdfFrame {
+            width: 100%;
+            height: 100%;
+            border: 0;
+        }
+    </style>
+</head>
+<body>
+    <iframe id="pdfFrame" src="{{ pdf_url }}" title="Service Record PDF"></iframe>
+    <script>
+        window.addEventListener('load', function () {
+            const printDelayMs = 1200; // Allow iframe PDF viewer time to initialize before print()
+            setTimeout(function () {
+                const frame = document.getElementById('pdfFrame');
+                if (frame && frame.contentWindow) {
+                    frame.contentWindow.focus();
+                    frame.contentWindow.print();
+                } else {
+                    window.print();
+                }
+            }, printDelayMs);
+        });
+    </script>
+</body>
+</html>

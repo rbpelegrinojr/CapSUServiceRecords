@@ -1,8 +1,9 @@
-import io
 import os
+import tempfile
 from datetime import datetime
 
-from flask import Blueprint, send_file, flash, redirect, url_for
+from docx2pdf import convert
+from flask import Blueprint, current_app, flash, make_response, redirect, render_template, url_for
 from docx import Document
 from docx.shared import Pt, Inches, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -58,6 +59,15 @@ def _set_cell_borders(cell):
         border_el.set(qn('w:space'), '0')
         border_el.set(qn('w:color'), '000000')
         tcPr.append(border_el)
+
+
+@print_doc_bp.route('/print-preview/<int:employee_id>')
+def print_service_record_preview(employee_id):
+    Employee.query.get_or_404(employee_id)  # Validate employee exists before opening preview
+    return render_template(
+        'print_doc/print_preview.html',
+        pdf_url=url_for('print_doc.print_service_record', employee_id=employee_id),
+    )
 
 
 @print_doc_bp.route('/print/<int:employee_id>')
@@ -150,14 +160,23 @@ def print_service_record(employee_id):
                     _set_cell_text(cells[i], val, font_size=8)
                     _set_cell_borders(cells[i])
 
-    output = io.BytesIO()
-    doc.save(output)
-    output.seek(0)
+    try:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            docx_path = os.path.join(temp_dir, 'service_record.docx')
+            pdf_path = os.path.join(temp_dir, 'service_record.pdf')
 
-    filename = f'ServiceRecord_{emp.surname}_{emp.given_name}.docx'.replace(' ', '_')
-    return send_file(
-        output,
-        mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        as_attachment=True,
-        download_name=filename,
-    )
+            doc.save(docx_path)
+            convert(docx_path, pdf_path)
+
+            with open(pdf_path, 'rb') as pdf_file:
+                pdf_bytes = pdf_file.read()
+    except (OSError, RuntimeError, ValueError, NotImplementedError):
+        current_app.logger.exception('PDF conversion failed for employee_id=%s', employee_id)
+        flash('PDF conversion failed. Please try again or contact support.', 'danger')
+        return redirect(url_for('employees.view_employee', employee_id=employee_id))
+
+    filename = f'ServiceRecord_{emp.surname}_{emp.given_name}.pdf'.replace(' ', '_')
+    response = make_response(pdf_bytes)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = f'inline; filename="{filename}"'
+    return response
