@@ -170,9 +170,13 @@ def print_service_record(employee_id):
 
             with open(pdf_path, 'rb') as pdf_file:
                 pdf_bytes = pdf_file.read()
-    except (OSError, RuntimeError, ValueError, NotImplementedError):
+    except Exception:
         current_app.logger.exception('PDF conversion failed for employee_id=%s', employee_id)
-        flash('PDF conversion failed. Please try again or contact support.', 'danger')
+        flash(
+            'PDF conversion failed. Make sure LibreOffice (Linux/macOS) or Microsoft Word (Windows) '
+            'is installed and accessible, then try again.',
+            'danger',
+        )
         return redirect(url_for('employees.view_employee', employee_id=employee_id))
 
     filename = f'ServiceRecord_{emp.surname}_{emp.given_name}.pdf'.replace(' ', '_')

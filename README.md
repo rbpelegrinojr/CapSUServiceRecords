@@ -69,6 +69,14 @@ CapSUServiceRecords/
 
 - Python 3.8 or higher
 - pip (Python package installer)
+- **LibreOffice** (Linux / macOS) — required for PDF generation:
+  ```bash
+  # Debian / Ubuntu
+  sudo apt install libreoffice
+  # macOS (Homebrew)
+  brew install --cask libreoffice
+  ```
+  On **Windows**, Microsoft Word must be installed instead of LibreOffice.
 
 ### 2. Install Dependencies
 
@@ -123,6 +131,8 @@ Each row = one service record. Rows with the same Surname + Given Name are linke
 1. Open an employee's profile
 2. Click **Print Service Record**
 3. A PDF preview opens in a new tab and triggers the print dialog
+
+> **Requirement:** LibreOffice must be installed (Linux/macOS) or Microsoft Word (Windows) for PDF generation to work.
 
 ### Exporting to Excel
 
