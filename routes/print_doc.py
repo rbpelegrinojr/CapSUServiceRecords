@@ -1,8 +1,8 @@
-import io
 import os
+import tempfile
 from datetime import datetime
 
-from flask import Blueprint, send_file, flash, redirect, url_for
+from flask import Blueprint, flash, make_response, redirect, url_for
 from docx import Document
 from docx.shared import Pt, Inches, Cm
 from docx.enum.text import WD_ALIGN_PARAGRAPH
@@ -150,14 +150,30 @@ def print_service_record(employee_id):
                     _set_cell_text(cells[i], val, font_size=8)
                     _set_cell_borders(cells[i])
 
-    output = io.BytesIO()
-    doc.save(output)
-    output.seek(0)
+    docx_path = None
+    pdf_path = None
+    try:
+        with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as tmp_docx:
+            docx_path = tmp_docx.name
+        doc.save(docx_path)
 
-    filename = f'ServiceRecord_{emp.surname}_{emp.given_name}.docx'.replace(' ', '_')
-    return send_file(
-        output,
-        mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        as_attachment=True,
-        download_name=filename,
-    )
+        pdf_path = docx_path.replace('.docx', '.pdf')
+        from docx2pdf import convert
+
+        convert(docx_path, pdf_path)
+        with open(pdf_path, 'rb') as pdf_file:
+            pdf_bytes = pdf_file.read()
+    except Exception as e:
+        flash(f'PDF conversion failed: {e}', 'danger')
+        return redirect(url_for('employees.view_employee', employee_id=employee_id))
+    finally:
+        if docx_path and os.path.exists(docx_path):
+            os.unlink(docx_path)
+        if pdf_path and os.path.exists(pdf_path):
+            os.unlink(pdf_path)
+
+    filename = f'ServiceRecord_{emp.surname}_{emp.given_name}.pdf'.replace(' ', '_')
+    response = make_response(pdf_bytes)
+    response.headers['Content-Type'] = 'application/pdf'
+    response.headers['Content-Disposition'] = f'inline; filename="{filename}"'
+    return response

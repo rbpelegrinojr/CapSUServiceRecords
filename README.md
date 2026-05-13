@@ -118,11 +118,11 @@ The app will:
 
 Each row = one service record. Rows with the same Surname + Given Name are linked to the same employee.
 
-### Generating a DOCX Service Record
+### Printing a Service Record PDF
 
 1. Open an employee's profile
-2. Click **Print / Download DOCX**
-3. The file will be downloaded automatically
+2. Click **Print Service Record**
+3. A PDF preview opens in a new tab for printing
 
 ### Exporting to Excel
 
