@@ -71,14 +71,21 @@ def _parse_official_format(file_bytes, filename):
 
     # ── Read employee information ────────────────────────────────────────────
     # Handle both strict B/C/D layout and merged-cell official template layout.
-    name_values = [cv(name_row, c) for c in range(2, min(ws.max_column, 12) + 1) if cv(name_row, c)]
+    name_values = []
+    for c in range(2, min(ws.max_column, 12) + 1):
+        value = cv(name_row, c)
+        if value:
+            name_values.append(value)
     surname = (name_values[0] if len(name_values) >= 1 else cv(name_row, 2)).upper()
     given_name = (name_values[1] if len(name_values) >= 2 else cv(name_row, 3)).upper()
     middle_name = (name_values[2] if len(name_values) >= 3 else cv(name_row, 4)).upper() or None
 
     birth_values = []
     if birth_row:
-        birth_values = [cv(birth_row, c) for c in range(2, min(ws.max_column, 12) + 1) if cv(birth_row, c)]
+        for c in range(2, min(ws.max_column, 12) + 1):
+            value = cv(birth_row, c)
+            if value:
+                birth_values.append(value)
     birth_date = birth_values[0] if len(birth_values) >= 1 else (cv(birth_row, 2) if birth_row else '')
     birth_place = birth_values[1] if len(birth_values) >= 2 else (cv(birth_row, 4) if birth_row else '')
 
@@ -105,17 +112,17 @@ def _parse_official_format(file_bytes, filename):
         header_rows = [hr for hr in range(max(1, r - 2), min(ws.max_row, r + 1) + 1)]
         max_scan_col = min(ws.max_column, 20)
         for ci in range(1, max_scan_col + 1):
-            labels = ' '.join(
-                cv(hr, ci).upper().replace('\n', ' ')
-                for hr in header_rows
-                if cv(hr, ci)
-            )
+            parts = []
+            for hr in header_rows:
+                value = cv(hr, ci)
+                if value:
+                    parts.append(value.upper().replace('\n', ' '))
+            labels = ' '.join(parts)
             if not labels:
                 continue
-            tokens = set(re.findall(r'[A-Z/]+', labels))
             if 'FROM' in labels and from_col is None:
                 from_col = ci
-            elif 'TO' in tokens and to_col is None:
+            elif re.search(r'(^|[^A-Z])TO([^A-Z]|$)', labels) and to_col is None:
                 to_col = ci
             elif 'DESIGNATION' in labels and desig_col is None:
                 desig_col = ci
