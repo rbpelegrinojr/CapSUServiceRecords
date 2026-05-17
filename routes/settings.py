@@ -27,23 +27,23 @@ def manage_settings():
                     uploaded_template.save(temp_file.name)
                     temp_path = temp_file.name
 
-                _validated_doc = Document(temp_path)
+                Document(temp_path)
 
                 template_path = os.path.join(
                     current_app.config['DOCX_TEMPLATE_DIR'],
                     'service_record_template.docx',
                 )
-                try:
-                    os.replace(temp_path, template_path)
-                except OSError:
-                    flash('Failed to save DOCX template. Please check file permissions and try again.', 'danger')
-                    return redirect(url_for('settings.manage_settings'))
+                os.replace(temp_path, template_path)
                 temp_path = None
                 flash('DOCX template uploaded successfully.', 'success')
             except (PackageNotFoundError, BadZipFile, ValueError):
                 flash('Invalid DOCX template. Please upload a valid .docx file.', 'danger')
                 return redirect(url_for('settings.manage_settings'))
+            except OSError:
+                flash('Failed to save DOCX template. Please check file permissions and try again.', 'danger')
+                return redirect(url_for('settings.manage_settings'))
             except Exception:
+                current_app.logger.exception('Template upload failed in settings')
                 flash('Template upload failed. Please try again.', 'danger')
                 return redirect(url_for('settings.manage_settings'))
             finally:
