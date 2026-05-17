@@ -18,6 +18,9 @@ ALLOWED_EXTENSIONS = {'xlsx'}
 # Row-scan limits used when parsing the official CapSU Service Records form
 _MAX_EMP_INFO_SEARCH_ROWS = 50   # rows to search for the NAME / BIRTH labels
 _MAX_HEADER_SEARCH_ROWS = 35     # rows after NAME row to search for the FROM/TO sub-header
+_EMP_INFO_SCAN_MAX_COLUMN = 12
+_HEADER_LOOKBACK_ROWS = 2
+_HEADER_SCAN_MAX_COLUMN = 20
 _MAX_DISPLAYED_ERRORS = 10
 
 
@@ -72,7 +75,7 @@ def _parse_official_format(file_bytes, filename):
     # ── Read employee information ────────────────────────────────────────────
     # Handle both strict B/C/D layout and merged-cell official template layout.
     name_values = []
-    for c in range(2, min(ws.max_column, 12) + 1):
+    for c in range(2, min(ws.max_column, _EMP_INFO_SCAN_MAX_COLUMN) + 1):
         value = cv(name_row, c)
         if value:
             name_values.append(value)
@@ -82,7 +85,7 @@ def _parse_official_format(file_bytes, filename):
 
     birth_values = []
     if birth_row:
-        for c in range(2, min(ws.max_column, 12) + 1):
+        for c in range(2, min(ws.max_column, _EMP_INFO_SCAN_MAX_COLUMN) + 1):
             value = cv(birth_row, c)
             if value:
                 birth_values.append(value)
@@ -109,8 +112,10 @@ def _parse_official_format(file_bytes, filename):
             continue
 
         # Some official files split the header across multiple rows.
-        header_rows = [hr for hr in range(max(1, r - 2), min(ws.max_row, r + 1) + 1)]
-        max_scan_col = min(ws.max_column, 20)
+        header_rows = [
+            hr for hr in range(max(1, r - _HEADER_LOOKBACK_ROWS), min(ws.max_row, r + 1) + 1)
+        ]
+        max_scan_col = min(ws.max_column, _HEADER_SCAN_MAX_COLUMN)
         for ci in range(1, max_scan_col + 1):
             parts = []
             for hr in header_rows:
@@ -122,6 +127,7 @@ def _parse_official_format(file_bytes, filename):
                 continue
             if 'FROM' in labels and from_col is None:
                 from_col = ci
+            # Match "TO" as a standalone token to avoid false positives (e.g., "STATION").
             elif re.search(r'(^|[^A-Z])TO([^A-Z]|$)', labels) and to_col is None:
                 to_col = ci
             elif 'DESIGNATION' in labels and desig_col is None:
