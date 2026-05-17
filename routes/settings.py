@@ -1,7 +1,9 @@
 import os
 import tempfile
+from zipfile import BadZipFile
 
 from docx import Document
+from docx.opc.exceptions import PackageNotFoundError
 from flask import Blueprint, current_app, render_template, request, redirect, url_for, flash
 from database import db
 from models.setting import Setting
@@ -25,17 +27,25 @@ def manage_settings():
                     uploaded_template.save(temp_file.name)
                     temp_path = temp_file.name
 
-                Document(temp_path)
+                validated_doc = Document(temp_path)
+                del validated_doc
 
                 template_path = os.path.join(
                     current_app.config['DOCX_TEMPLATE_DIR'],
                     'service_record_template.docx',
                 )
-                os.replace(temp_path, template_path)
+                try:
+                    os.replace(temp_path, template_path)
+                except OSError:
+                    flash('Failed to save DOCX template. Please check file permissions and try again.', 'danger')
+                    return redirect(url_for('settings.manage_settings'))
                 temp_path = None
                 flash('DOCX template uploaded successfully.', 'success')
-            except Exception:
+            except (PackageNotFoundError, BadZipFile, ValueError):
                 flash('Invalid DOCX template. Please upload a valid .docx file.', 'danger')
+                return redirect(url_for('settings.manage_settings'))
+            except Exception:
+                flash('Template upload failed. Please try again.', 'danger')
                 return redirect(url_for('settings.manage_settings'))
             finally:
                 if temp_path and os.path.exists(temp_path):
