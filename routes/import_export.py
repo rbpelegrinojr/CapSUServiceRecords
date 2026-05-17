@@ -1,6 +1,7 @@
 import io
 import os
 import re
+from datetime import datetime
 
 import openpyxl
 import pandas as pd
@@ -17,6 +18,7 @@ ALLOWED_EXTENSIONS = {'xlsx'}
 # Row-scan limits used when parsing the official CapSU Service Records form
 _MAX_EMP_INFO_SEARCH_ROWS = 50   # rows to search for the NAME / BIRTH labels
 _MAX_HEADER_SEARCH_ROWS = 35     # rows after NAME row to search for the FROM/TO sub-header
+_MAX_DISPLAYED_ERRORS = 10
 
 
 def _allowed_file(filename):
@@ -271,10 +273,10 @@ def import_records():
             msg = f'Import complete: {created_employees} employee(s) created, {created_records} record(s) imported.'
             flash(msg, 'success')
             if errors:
-                for err in errors[:10]:
+                for err in errors[:_MAX_DISPLAYED_ERRORS]:
                     flash(err, 'warning')
-                if len(errors) > 10:
-                    flash(f'... and {len(errors) - 10} more errors.', 'warning')
+                if len(errors) > _MAX_DISPLAYED_ERRORS:
+                    flash(f'... and {len(errors) - _MAX_DISPLAYED_ERRORS} more errors.', 'warning')
 
         except Exception as e:
             db.session.rollback()
@@ -365,14 +367,80 @@ def import_official_records():
             f'{total_records} record(s) imported.',
             'success',
         )
-    for err in all_errors[:10]:
+    for err in all_errors[:_MAX_DISPLAYED_ERRORS]:
         flash(err, 'warning')
-    if len(all_errors) > 10:
-        flash(f'… and {len(all_errors) - 10} more errors.', 'warning')
+    if len(all_errors) > _MAX_DISPLAYED_ERRORS:
+        flash(f'… and {len(all_errors) - _MAX_DISPLAYED_ERRORS} more errors.', 'warning')
     if not (total_employees or total_records) and not all_errors:
         flash('No records were found in the uploaded file(s).', 'warning')
 
     return redirect(url_for('import_export.import_records'))
+
+
+@import_export_bp.route('/combine-files', methods=['POST'])
+def combine_files():
+    """Combine multiple official-format files into one flat system-format file."""
+    files = request.files.getlist('files')
+    if not files or all(f.filename == '' for f in files):
+        flash('No files selected.', 'danger')
+        return redirect(url_for('import_export.import_records'))
+
+    rows = []
+    all_errors = []
+
+    for f in files:
+        if f.filename == '':
+            continue
+        if not _allowed_file(f.filename):
+            all_errors.append(f'{f.filename}: Only .xlsx files are allowed.')
+            continue
+
+        emp_data, records, err = _parse_official_format(f.read(), f.filename)
+        if err:
+            all_errors.append(err)
+            continue
+
+        for rec in records:
+            rows.append({
+                'Surname': emp_data['surname'],
+                'Given Name': emp_data['given_name'],
+                'Middle Name': emp_data.get('middle_name') or '',
+                'Birth Date': emp_data.get('birth_date') or '',
+                'Birth Place': emp_data.get('birth_place') or '',
+                'Date From': rec['date_from'] or '',
+                'Date To': rec['date_to'] or '',
+                'Designation': rec['designation'] or '',
+                'Status': rec['status'] or '',
+                'Monthly Salary': rec['monthly_salary'] if rec['monthly_salary'] is not None else '',
+                'Annual Salary': rec['annual_salary'] if rec['annual_salary'] is not None else '',
+                'Station/Place of': rec['station_place_of'] or '',
+                'Branch': rec['branch'] or '',
+                'LV ABS WO Pay': rec['lv_abs_wo_pay'] or '',
+                'Separation Date': rec['separation_date'] or '',
+                'Separation Cause': rec['separation_cause'] or '',
+            })
+
+    for err in all_errors[:_MAX_DISPLAYED_ERRORS]:
+        flash(err, 'warning')
+    if len(all_errors) > _MAX_DISPLAYED_ERRORS:
+        flash(f'… and {len(all_errors) - _MAX_DISPLAYED_ERRORS} more errors.', 'warning')
+
+    if not rows:
+        flash('No records could be read from the uploaded file(s).', 'danger')
+        return redirect(url_for('import_export.import_records'))
+
+    df = pd.DataFrame(rows)
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Service Records')
+    output.seek(0)
+
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=f"combined_service_records_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
+    )
 
 
 @import_export_bp.route('/export/<int:employee_id>')
