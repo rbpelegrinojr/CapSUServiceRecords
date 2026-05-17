@@ -14,6 +14,10 @@ import_export_bp = Blueprint('import_export', __name__)
 
 ALLOWED_EXTENSIONS = {'xlsx'}
 
+# Row-scan limits used when parsing the official CapSU Service Records form
+_MAX_EMP_INFO_SEARCH_ROWS = 50   # rows to search for the NAME / BIRTH labels
+_MAX_HEADER_SEARCH_ROWS = 35     # rows after NAME row to search for the FROM/TO sub-header
+
 
 def _allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
@@ -50,7 +54,7 @@ def _parse_official_format(file_bytes, filename):
 
     # ── Locate the NAME and BIRTH rows ──────────────────────────────────────
     name_row = birth_row = None
-    for r in range(1, min(ws.max_row + 1, 50)):
+    for r in range(1, min(ws.max_row + 1, _MAX_EMP_INFO_SEARCH_ROWS)):
         a = cv(r, 1).upper()
         if a == 'NAME':
             name_row = r
@@ -85,7 +89,7 @@ def _parse_official_format(file_bytes, filename):
     data_start_row = None
 
     search_from = name_row + 1
-    search_to = min(ws.max_row, name_row + 35)
+    search_to = min(ws.max_row, name_row + _MAX_HEADER_SEARCH_ROWS)
     for r in range(search_from, search_to + 1):
         row_upper = [cv(r, c).upper().replace('\n', ' ') for c in range(1, 13)]
         if 'FROM' not in row_upper:
@@ -147,7 +151,7 @@ def _parse_official_format(file_bytes, filename):
         salary_raw = cv(r, salary_col) if salary_col else ''
         monthly_salary = None
         try:
-            m = re.search(r'[\d,]+\.?\d*', salary_raw.replace(',', ''))
+            m = re.search(r'\d+\.?\d*', salary_raw.replace(',', ''))
             if m:
                 monthly_salary = float(m.group().replace(',', ''))
         except (ValueError, TypeError):
