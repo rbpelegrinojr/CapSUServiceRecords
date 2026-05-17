@@ -24,8 +24,8 @@ _MAX_HEADER_SCAN_COLUMN = 20
 _MAX_DISPLAYED_ERRORS = 10
 _TO_HEADER_PATTERN = re.compile(r'\bTO\b')
 _DATEISH_PATTERN = re.compile(
-    r'(^\d{1,4}[-/]\d{1,2}[-/]\d{1,4}$|^\d{1,2}/\d{1,2}/\d{2,4}$|'
-    r'^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC))',
+    r'(^\d{1,4}[-/]\d{1,2}[-/]\d{2,4}$|'
+    r'^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)\b.+\d{2,4}$)',
     re.IGNORECASE,
 )
 _TABLE_END_MARKERS = ('ISSUED IN COMPLIANCE', 'CERTIFIED CORRECT')
@@ -210,7 +210,7 @@ def _parse_official_format(file_bytes, filename):
             continue
 
         salary_raw = cv(r, salary_col) if salary_col else ''
-        has_other_service_fields = any([
+        has_other_service_fields = any((
             to_val,
             designation_val,
             status_val,
@@ -220,7 +220,7 @@ def _parse_official_format(file_bytes, filename):
             lv_val,
             sep_date_val,
             sep_cause_val,
-        ])
+        ))
         if not looks_like_service_from(from_val) or not has_other_service_fields:
             continue
 
