@@ -5,10 +5,11 @@
     --capsu-blue: #1a3a6b;
     --capsu-gold: #c9a84c;
     --capsu-gold-bright: #ffc107;
+    --capsu-background: #f6f8fc;
 }
 
 body {
-    background-color: #f6f8fc;
+    background-color: var(--capsu-background);
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
 }
 

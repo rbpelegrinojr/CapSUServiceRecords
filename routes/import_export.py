@@ -17,6 +17,7 @@ ALLOWED_EXTENSIONS = {'xlsx'}
 # Row-scan limits used when parsing the official CapSU Service Records form
 _MAX_EMP_INFO_SEARCH_ROWS = 50   # rows to search for the NAME / BIRTH labels
 _MAX_HEADER_SEARCH_ROWS = 35     # rows after NAME row to search for the FROM/TO sub-header
+_MAX_DISPLAYED_ERRORS = 10
 
 
 def _allowed_file(filename):
@@ -271,10 +272,10 @@ def import_records():
             msg = f'Import complete: {created_employees} employee(s) created, {created_records} record(s) imported.'
             flash(msg, 'success')
             if errors:
-                for err in errors[:10]:
+                for err in errors[:_MAX_DISPLAYED_ERRORS]:
                     flash(err, 'warning')
-                if len(errors) > 10:
-                    flash(f'... and {len(errors) - 10} more errors.', 'warning')
+                if len(errors) > _MAX_DISPLAYED_ERRORS:
+                    flash(f'... and {len(errors) - _MAX_DISPLAYED_ERRORS} more errors.', 'warning')
 
         except Exception as e:
             db.session.rollback()
@@ -365,10 +366,10 @@ def import_official_records():
             f'{total_records} record(s) imported.',
             'success',
         )
-    for err in all_errors[:10]:
+    for err in all_errors[:_MAX_DISPLAYED_ERRORS]:
         flash(err, 'warning')
-    if len(all_errors) > 10:
-        flash(f'… and {len(all_errors) - 10} more errors.', 'warning')
+    if len(all_errors) > _MAX_DISPLAYED_ERRORS:
+        flash(f'… and {len(all_errors) - _MAX_DISPLAYED_ERRORS} more errors.', 'warning')
     if not (total_employees or total_records) and not all_errors:
         flash('No records were found in the uploaded file(s).', 'warning')
 
@@ -418,10 +419,10 @@ def combine_files():
                 'Separation Cause': rec['separation_cause'] or '',
             })
 
-    for err in all_errors[:10]:
+    for err in all_errors[:_MAX_DISPLAYED_ERRORS]:
         flash(err, 'warning')
-    if len(all_errors) > 10:
-        flash(f'… and {len(all_errors) - 10} more errors.', 'warning')
+    if len(all_errors) > _MAX_DISPLAYED_ERRORS:
+        flash(f'… and {len(all_errors) - _MAX_DISPLAYED_ERRORS} more errors.', 'warning')
 
     if not rows:
         flash('No records could be read from the uploaded file(s).', 'danger')
