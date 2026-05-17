@@ -79,12 +79,32 @@ def _set_cell_borders(cell):
         tcPr.append(border_el)
 
 
+def _get_template_page_size():
+    """Return (width_in, height_in) from the DOCX template."""
+    template_path = os.path.join(
+        os.path.dirname(os.path.dirname(__file__)),
+        'docx_templates',
+        'service_record_template.docx',
+    )
+    try:
+        doc = Document(template_path)
+        sect = doc.sections[0]
+        w = round(sect.page_width.inches, 4) if sect.page_width else 8.5
+        h = round(sect.page_height.inches, 4) if sect.page_height else 11.0
+    except Exception:
+        w, h = 8.5, 11.0
+    return w, h
+
+
 @print_doc_bp.route('/print-preview/<int:employee_id>')
 def print_service_record_preview(employee_id):
     Employee.query.get_or_404(employee_id)  # Validate employee exists before opening preview
+    page_width, page_height = _get_template_page_size()
     return render_template(
         'print_doc/print_preview.html',
         pdf_url=url_for('print_doc.print_service_record', employee_id=employee_id),
+        page_width=page_width,
+        page_height=page_height,
     )
 
 
