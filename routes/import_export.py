@@ -75,7 +75,7 @@ def _parse_official_format(file_bytes, filename):
     # ── Read employee information ────────────────────────────────────────────
     # Handle both strict B/C/D layout and merged-cell official template layout.
     max_emp_info_col = min(ws.max_column, _MAX_EMP_INFO_SCAN_COLUMN)
-    def up(value):
+    def safe_upper(value):
         return (value or '').upper()
 
     name_values = []
@@ -83,9 +83,9 @@ def _parse_official_format(file_bytes, filename):
         value = cv(name_row, c)
         if value:
             name_values.append(value)
-    surname = up(name_values[0] if len(name_values) >= 1 else cv(name_row, 2))
-    given_name = up(name_values[1] if len(name_values) >= 2 else cv(name_row, 3))
-    middle_name = up(name_values[2] if len(name_values) >= 3 else cv(name_row, 4)) or None
+    surname = safe_upper(name_values[0] if len(name_values) >= 1 else cv(name_row, 2))
+    given_name = safe_upper(name_values[1] if len(name_values) >= 2 else cv(name_row, 3))
+    middle_name = safe_upper(name_values[2] if len(name_values) >= 3 else cv(name_row, 4)) or None
 
     birth_values = []
     if birth_row:
