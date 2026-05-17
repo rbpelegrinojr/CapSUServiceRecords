@@ -33,6 +33,7 @@ def manage_settings():
                     current_app.config['DOCX_TEMPLATE_DIR'],
                     'service_record_template.docx',
                 )
+                os.makedirs(os.path.dirname(template_path), exist_ok=True)
                 os.replace(temp_path, template_path)
                 temp_path = None
                 flash('DOCX template uploaded successfully.', 'success')
