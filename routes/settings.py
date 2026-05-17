@@ -27,8 +27,7 @@ def manage_settings():
                     uploaded_template.save(temp_file.name)
                     temp_path = temp_file.name
 
-                validated_doc = Document(temp_path)
-                del validated_doc
+                _validated_doc = Document(temp_path)
 
                 template_path = os.path.join(
                     current_app.config['DOCX_TEMPLATE_DIR'],
