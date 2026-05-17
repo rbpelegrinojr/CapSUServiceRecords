@@ -2,14 +2,59 @@
 {% block title %}Import Records — CapSU Service Records{% endblock %}
 {% block content %}
 <div class="row justify-content-center">
-    <div class="col-lg-8">
+    <div class="col-lg-9">
         <h2 class="fw-bold text-primary mb-3">
             <i class="bi bi-upload me-2"></i>Import from Excel
         </h2>
 
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-white fw-semibold">Upload Excel File</div>
+        <!-- ── Official per-employee format ── -->
+        <div class="card shadow-sm mb-4 border-success">
+            <div class="card-header bg-success bg-opacity-10 fw-semibold text-success">
+                <i class="bi bi-file-earmark-person me-2"></i>Import Official CapSU Service Records Files
+                <span class="badge bg-success ms-2">Recommended for existing HR files</span>
+            </div>
             <div class="card-body">
+                <p class="small text-muted mb-3">
+                    Use this option when you have the <strong>individual per-employee Excel files</strong>
+                    produced by the standard CapSU Service Records form (one file per employee, with the
+                    employee's name at the top and appointment rows below the table headers).
+                    You can select <strong>multiple files at once</strong>.
+                </p>
+                <form method="post" action="{{ url_for('import_export.import_official_records') }}"
+                      enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Select Official Format .xlsx File(s)</label>
+                        <input type="file" name="files" class="form-control" accept=".xlsx"
+                               multiple required>
+                        <div class="form-text">
+                            Hold <kbd>Ctrl</kbd> (or <kbd>⌘</kbd> on Mac) to select multiple files at once.
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-upload me-1"></i>Import Official Files
+                    </button>
+                </form>
+                <div class="mt-3 small">
+                    <strong>Expected file layout:</strong>
+                    <ul class="mb-0 mt-1">
+                        <li>A row with <code>NAME</code> in column A — surname in col B, given name in col C, middle name in col D.</li>
+                        <li>A row with <code>BIRTH</code> in column A — birth date in col B, birth place in col D.</li>
+                        <li>A header row containing <code>FROM</code> / <code>TO</code> labels, followed by the appointment rows.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- ── Flat tabular format ── -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-white fw-semibold">
+                <i class="bi bi-table me-2"></i>Import from Flat Spreadsheet (System Format)
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-3">
+                    Use this option to import a single spreadsheet where every row is one service record
+                    entry (the format produced by the <em>Download Sample Template</em> button below).
+                </p>
                 <form method="post" enctype="multipart/form-data">
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Select .xlsx File</label>
@@ -27,12 +72,13 @@
             </div>
         </div>
 
+        <!-- ── Column reference ── -->
         <div class="card shadow-sm">
             <div class="card-header bg-white fw-semibold">
-                <i class="bi bi-info-circle me-2 text-info"></i>Required Excel Column Format
+                <i class="bi bi-info-circle me-2 text-info"></i>Flat Spreadsheet — Required Column Format
             </div>
             <div class="card-body">
-                <p class="text-muted small">Your Excel file must have a header row with the following columns
+                <p class="text-muted small">Your flat Excel file must have a header row with the following columns
                     (column names must match exactly, including case):</p>
                 <div class="table-responsive">
                     <table class="table table-sm table-bordered small">
