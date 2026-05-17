@@ -24,7 +24,7 @@ _MAX_HEADER_SCAN_COLUMN = 20
 _MAX_DISPLAYED_ERRORS = 10
 _TO_HEADER_PATTERN = re.compile(r'\bTO\b')
 _DATEISH_PATTERN = re.compile(
-    r'(^\d{1,4}[-/]\d{1,2}[-/]\d{2,4}$|'
+    r'(^\d{1,2}[-/]\d{1,2}[-/]\d{2,4}$|'
     r'^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)\b.+\d{2,4}$)',
     re.IGNORECASE,
 )
@@ -86,6 +86,7 @@ def _parse_official_format(file_bytes, filename):
         return (value or '').upper()
 
     def looks_like_service_from(value):
+        """Return True when a FROM-cell value looks like a date or ditto marker."""
         text = (value or '').strip().upper()
         if not text:
             return False
@@ -221,6 +222,7 @@ def _parse_official_format(file_bytes, filename):
             sep_date_val,
             sep_cause_val,
         ))
+        # Keep only table rows with a date-like FROM value and at least one companion field.
         if not looks_like_service_from(from_val) or not has_other_service_fields:
             continue
 
