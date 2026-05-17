@@ -1,4 +1,5 @@
 import os
+import platform
 import subprocess
 import tempfile
 from datetime import datetime
@@ -14,6 +15,22 @@ from docx.oxml import OxmlElement
 from models.employee import Employee
 from models.service_record import ServiceRecord
 from models.setting import Setting
+
+# Optional Windows COM modules – only available on Windows
+try:
+    import pythoncom as _pythoncom
+    import pywintypes as _pywintypes
+    _WINDOWS_COM_AVAILABLE = True
+except ImportError:
+    _pythoncom = None
+    _pywintypes = None
+    _WINDOWS_COM_AVAILABLE = False
+
+# Exceptions that indicate a PDF-conversion failure.  pywintypes.com_error is
+# included on Windows so that cancelling the print dialog is handled gracefully.
+_CONVERSION_ERRORS = (OSError, RuntimeError, ValueError, NotImplementedError, subprocess.CalledProcessError)
+if _WINDOWS_COM_AVAILABLE:
+    _CONVERSION_ERRORS = (*_CONVERSION_ERRORS, _pywintypes.com_error)
 
 print_doc_bp = Blueprint('print_doc', __name__)
 
@@ -161,17 +178,28 @@ def print_service_record(employee_id):
                     _set_cell_text(cells[i], val, font_size=8)
                     _set_cell_borders(cells[i])
 
+    # _com_initialized must be defined before the outer try so the finally
+    # block can reference it regardless of whether CoInitialize was reached.
+    _com_initialized = False
     try:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            docx_path = os.path.join(temp_dir, 'service_record.docx')
-            pdf_path = os.path.join(temp_dir, 'service_record.pdf')
+        if platform.system() == 'Windows' and _WINDOWS_COM_AVAILABLE:
+            _pythoncom.CoInitialize()
+            _com_initialized = True
 
-            doc.save(docx_path)
-            convert(docx_path, pdf_path)
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                docx_path = os.path.join(temp_dir, 'service_record.docx')
+                pdf_path = os.path.join(temp_dir, 'service_record.pdf')
 
-            with open(pdf_path, 'rb') as pdf_file:
-                pdf_bytes = pdf_file.read()
-    except (OSError, RuntimeError, ValueError, NotImplementedError, subprocess.CalledProcessError):
+                doc.save(docx_path)
+                convert(docx_path, pdf_path)
+
+                with open(pdf_path, 'rb') as pdf_file:
+                    pdf_bytes = pdf_file.read()
+        finally:
+            if _com_initialized:
+                _pythoncom.CoUninitialize()
+    except _CONVERSION_ERRORS:
         current_app.logger.exception('PDF conversion failed for employee_id=%s', employee_id)
         flash(
             'PDF conversion failed. Make sure LibreOffice (Linux/macOS) or Microsoft Word (Windows) '
