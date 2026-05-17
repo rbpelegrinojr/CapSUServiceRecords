@@ -36,11 +36,12 @@ def manage_settings():
                 os.replace(temp_path, template_path)
                 temp_path = None
                 flash('DOCX template uploaded successfully.', 'success')
-            except (PackageNotFoundError, BadZipFile, ValueError):
+            except (PackageNotFoundError, BadZipFile):
                 flash('Invalid DOCX template. Please upload a valid .docx file.', 'danger')
                 return redirect(url_for('settings.manage_settings'))
             except OSError:
-                flash('Failed to save DOCX template. Please check file permissions and try again.', 'danger')
+                current_app.logger.exception('Failed to save DOCX template')
+                flash('Failed to save DOCX template. Please try again.', 'danger')
                 return redirect(url_for('settings.manage_settings'))
             except Exception:
                 current_app.logger.exception('Template upload failed in settings')
