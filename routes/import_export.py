@@ -1,6 +1,8 @@
 import io
 import os
+import re
 
+import openpyxl
 import pandas as pd
 from flask import Blueprint, render_template, request, redirect, url_for, flash, send_file
 from werkzeug.utils import secure_filename
@@ -15,6 +17,164 @@ ALLOWED_EXTENSIONS = {'xlsx'}
 
 def _allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def _parse_official_format(file_bytes, filename):
+    """
+    Parse a single official CapSU Service Records .xlsx file (one file per employee).
+
+    Expected layout:
+      - A row with "NAME" in col A, followed by Surname (col B), Given Name (col C),
+        Middle Name (col D).
+      - A row with "BIRTH" in col A, followed by birth date (col B) and birth place (col D).
+      - A sub-header row containing "FROM" somewhere; data rows follow immediately after.
+
+    Returns (emp_data dict, records list, error_message string).
+    On failure emp_data and records are None and error_message is set.
+    """
+    try:
+        wb = openpyxl.load_workbook(io.BytesIO(file_bytes), data_only=True)
+    except Exception as exc:
+        return None, None, f'{filename}: Could not open file – {exc}'
+
+    ws = wb.active
+
+    def cv(row, col):
+        """Return cell value as a stripped string, formatting dates as MM/DD/YYYY."""
+        v = ws.cell(row=row, column=col).value
+        if v is None:
+            return ''
+        if hasattr(v, 'strftime'):
+            return v.strftime('%m/%d/%Y')
+        return str(v).strip()
+
+    # ── Locate the NAME and BIRTH rows ──────────────────────────────────────
+    name_row = birth_row = None
+    for r in range(1, min(ws.max_row + 1, 50)):
+        a = cv(r, 1).upper()
+        if a == 'NAME':
+            name_row = r
+        elif a == 'BIRTH':
+            birth_row = r
+
+    if name_row is None:
+        return None, None, (
+            f'{filename}: Could not find a "NAME" label in column A. '
+            'Make sure the file uses the standard CapSU Service Records form.'
+        )
+
+    # ── Read employee information ────────────────────────────────────────────
+    # Standard layout: col B = Surname, col C = Given Name, col D = Middle Name
+    surname = cv(name_row, 2).upper()
+    given_name = cv(name_row, 3).upper()
+    middle_name = cv(name_row, 4).upper() or None
+
+    birth_date = cv(birth_row, 2) if birth_row else ''
+    birth_place = cv(birth_row, 4) if birth_row else ''
+
+    if not surname or not given_name:
+        return None, None, (
+            f'{filename}: Could not read Surname or Given Name from the NAME row (row {name_row}). '
+            'Expected: col B = Surname, col C = Given Name.'
+        )
+
+    # ── Locate the sub-header row that contains "FROM" ──────────────────────
+    from_col = to_col = desig_col = status_col = None
+    salary_col = station_col = branch_col = lv_col = None
+    sep_date_col = sep_cause_col = None
+    data_start_row = None
+
+    search_from = name_row + 1
+    search_to = min(ws.max_row, name_row + 35)
+    for r in range(search_from, search_to + 1):
+        row_upper = [cv(r, c).upper().replace('\n', ' ') for c in range(1, 13)]
+        if 'FROM' not in row_upper:
+            continue
+        # Map sub-header labels to column indices (1-based)
+        for ci, label in enumerate(row_upper, start=1):
+            if label == 'FROM' and from_col is None:
+                from_col = ci
+            elif label == 'TO' and to_col is None:
+                to_col = ci
+            elif 'DESIGNATION' in label and desig_col is None:
+                desig_col = ci
+            elif label == 'STATUS' and status_col is None:
+                status_col = ci
+            elif 'SALARY' in label and salary_col is None:
+                salary_col = ci
+            elif ('STATION' in label or 'PLACE' in label) and station_col is None:
+                station_col = ci
+            elif label == 'BRANCH' and branch_col is None:
+                branch_col = ci
+            elif ('PAY' in label or 'W/O' in label) and lv_col is None:
+                lv_col = ci
+            elif label == 'DATE' and sep_date_col is None:
+                sep_date_col = ci
+            elif label == 'CAUSE' and sep_cause_col is None:
+                sep_cause_col = ci
+        data_start_row = r + 1
+        break
+
+    # Fallback to fixed column positions if header detection failed
+    if data_start_row is None:
+        from_col, to_col = 1, 2
+        desig_col, status_col = 3, 4
+        salary_col = 5
+        station_col, branch_col = 6, 7
+        lv_col = 8
+        sep_date_col, sep_cause_col = 9, 10
+        data_start_row = (birth_row + 10) if birth_row else 24
+
+    # ── Read service record rows ─────────────────────────────────────────────
+    records = []
+    last_used_col = max(
+        c for c in (from_col, to_col, desig_col, status_col, salary_col,
+                    station_col, branch_col, lv_col, sep_date_col, sep_cause_col)
+        if c is not None
+    )
+
+    for r in range(data_start_row, ws.max_row + 1):
+        row_vals = [cv(r, c) for c in range(from_col, last_used_col + 1)]
+        if not any(row_vals):
+            continue
+
+        from_val = cv(r, from_col)
+
+        # Skip rows that look like repeated headers or stray labels
+        if from_val.upper() in ('FROM', 'SERVICE', '(INCLUSIVE DATES)', ''):
+            continue
+
+        salary_raw = cv(r, salary_col) if salary_col else ''
+        monthly_salary = None
+        try:
+            m = re.search(r'[\d,]+\.?\d*', salary_raw.replace(',', ''))
+            if m:
+                monthly_salary = float(m.group().replace(',', ''))
+        except (ValueError, TypeError):
+            pass
+
+        records.append({
+            'date_from': from_val,
+            'date_to': cv(r, to_col) if to_col else '',
+            'designation': cv(r, desig_col) if desig_col else '',
+            'status': cv(r, status_col) if status_col else '',
+            'monthly_salary': monthly_salary,
+            'annual_salary': None,
+            'station_place_of': cv(r, station_col) if station_col else '',
+            'branch': cv(r, branch_col) if branch_col else '',
+            'lv_abs_wo_pay': cv(r, lv_col) if lv_col else '',
+            'separation_date': cv(r, sep_date_col) if sep_date_col else '',
+            'separation_cause': cv(r, sep_cause_col) if sep_cause_col else '',
+        })
+
+    emp_data = {
+        'surname': surname,
+        'given_name': given_name,
+        'middle_name': middle_name,
+        'birth_date': birth_date,
+        'birth_place': birth_place,
+    }
+    return emp_data, records, None
 
 
 @import_export_bp.route('/import', methods=['GET', 'POST'])
@@ -119,6 +279,96 @@ def import_records():
         return redirect(url_for('import_export.import_records'))
 
     return render_template('import_export/import.html')
+
+
+@import_export_bp.route('/import-official', methods=['POST'])
+def import_official_records():
+    """Import one or more per-employee official CapSU Service Records .xlsx files."""
+    files = request.files.getlist('files')
+    if not files or all(f.filename == '' for f in files):
+        flash('No files selected.', 'danger')
+        return redirect(url_for('import_export.import_records'))
+
+    total_employees = 0
+    total_records = 0
+    all_errors = []
+
+    for f in files:
+        if f.filename == '':
+            continue
+        if not _allowed_file(f.filename):
+            all_errors.append(f'{f.filename}: Only .xlsx files are allowed.')
+            continue
+
+        emp_data, records, err = _parse_official_format(f.read(), f.filename)
+        if err:
+            all_errors.append(err)
+            continue
+
+        try:
+            surname = emp_data['surname']
+            given_name = emp_data['given_name']
+
+            emp = Employee.query.filter(
+                db.func.upper(Employee.surname) == surname,
+                db.func.upper(Employee.given_name) == given_name,
+            ).first()
+
+            if not emp:
+                emp = Employee(
+                    surname=surname,
+                    given_name=given_name,
+                    middle_name=emp_data.get('middle_name'),
+                    birth_date=emp_data.get('birth_date') or None,
+                    birth_place=emp_data.get('birth_place') or None,
+                )
+                db.session.add(emp)
+                db.session.flush()
+                total_employees += 1
+
+            max_sort = db.session.query(
+                db.func.max(ServiceRecord.sort_order)
+            ).filter_by(employee_id=emp.id).scalar() or 0
+
+            for i, rec_data in enumerate(records, start=1):
+                rec = ServiceRecord(
+                    employee_id=emp.id,
+                    date_from=rec_data['date_from'] or None,
+                    date_to=rec_data['date_to'] or None,
+                    designation=rec_data['designation'] or None,
+                    status=rec_data['status'] or None,
+                    monthly_salary=rec_data['monthly_salary'],
+                    annual_salary=rec_data['annual_salary'],
+                    station_place_of=rec_data['station_place_of'] or None,
+                    branch=rec_data['branch'] or None,
+                    lv_abs_wo_pay=rec_data['lv_abs_wo_pay'] or None,
+                    separation_date=rec_data['separation_date'] or None,
+                    separation_cause=rec_data['separation_cause'] or None,
+                    sort_order=max_sort + i,
+                )
+                db.session.add(rec)
+                total_records += 1
+
+            db.session.commit()
+
+        except Exception as exc:
+            db.session.rollback()
+            all_errors.append(f'{f.filename}: {exc}')
+
+    if total_employees or total_records:
+        flash(
+            f'Import complete: {total_employees} employee(s) created, '
+            f'{total_records} record(s) imported.',
+            'success',
+        )
+    for err in all_errors[:10]:
+        flash(err, 'warning')
+    if len(all_errors) > 10:
+        flash(f'… and {len(all_errors) - 10} more errors.', 'warning')
+    if not (total_employees or total_records) and not all_errors:
+        flash('No records were found in the uploaded file(s).', 'warning')
+
+    return redirect(url_for('import_export.import_records'))
 
 
 @import_export_bp.route('/export/<int:employee_id>')
