@@ -1,4 +1,5 @@
 import os
+import platform
 import subprocess
 import tempfile
 from datetime import datetime
@@ -162,16 +163,29 @@ def print_service_record(employee_id):
                     _set_cell_borders(cells[i])
 
     try:
-        with tempfile.TemporaryDirectory() as temp_dir:
-            docx_path = os.path.join(temp_dir, 'service_record.docx')
-            pdf_path = os.path.join(temp_dir, 'service_record.pdf')
+        _com_initialized = False
+        if platform.system() == 'Windows':
+            try:
+                import pythoncom
+                pythoncom.CoInitialize()
+                _com_initialized = True
+            except ImportError:
+                pass
 
-            doc.save(docx_path)
-            convert(docx_path, pdf_path)
+        try:
+            with tempfile.TemporaryDirectory() as temp_dir:
+                docx_path = os.path.join(temp_dir, 'service_record.docx')
+                pdf_path = os.path.join(temp_dir, 'service_record.pdf')
 
-            with open(pdf_path, 'rb') as pdf_file:
-                pdf_bytes = pdf_file.read()
-    except (OSError, RuntimeError, ValueError, NotImplementedError, subprocess.CalledProcessError):
+                doc.save(docx_path)
+                convert(docx_path, pdf_path)
+
+                with open(pdf_path, 'rb') as pdf_file:
+                    pdf_bytes = pdf_file.read()
+        finally:
+            if _com_initialized:
+                pythoncom.CoUninitialize()
+    except Exception:
         current_app.logger.exception('PDF conversion failed for employee_id=%s', employee_id)
         flash(
             'PDF conversion failed. Make sure LibreOffice (Linux/macOS) or Microsoft Word (Windows) '
