@@ -18,9 +18,9 @@ ALLOWED_EXTENSIONS = {'xlsx'}
 # Row-scan limits used when parsing the official CapSU Service Records form
 _MAX_EMP_INFO_SEARCH_ROWS = 50   # rows to search for the NAME / BIRTH labels
 _MAX_HEADER_SEARCH_ROWS = 35     # rows after NAME row to search for the FROM/TO sub-header
-_EMP_INFO_SCAN_MAX_COLUMN = 12
+_MAX_EMP_INFO_SCAN_COLUMN = 12
 _HEADER_LOOKBACK_ROWS = 2
-_HEADER_SCAN_MAX_COLUMN = 20
+_MAX_HEADER_SCAN_COLUMN = 20
 _MAX_DISPLAYED_ERRORS = 10
 
 
@@ -74,15 +74,18 @@ def _parse_official_format(file_bytes, filename):
 
     # ── Read employee information ────────────────────────────────────────────
     # Handle both strict B/C/D layout and merged-cell official template layout.
-    max_emp_info_col = min(ws.max_column, _EMP_INFO_SCAN_MAX_COLUMN)
+    max_emp_info_col = min(ws.max_column, _MAX_EMP_INFO_SCAN_COLUMN)
+    def up(value):
+        return (value or '').upper()
+
     name_values = []
     for c in range(2, max_emp_info_col + 1):
         value = cv(name_row, c)
         if value:
             name_values.append(value)
-    surname = (name_values[0] if len(name_values) >= 1 else cv(name_row, 2)).upper()
-    given_name = (name_values[1] if len(name_values) >= 2 else cv(name_row, 3)).upper()
-    middle_name = (name_values[2] if len(name_values) >= 3 else cv(name_row, 4)).upper() or None
+    surname = up(name_values[0] if len(name_values) >= 1 else cv(name_row, 2))
+    given_name = up(name_values[1] if len(name_values) >= 2 else cv(name_row, 3))
+    middle_name = up(name_values[2] if len(name_values) >= 3 else cv(name_row, 4)) or None
 
     birth_values = []
     if birth_row:
@@ -116,7 +119,7 @@ def _parse_official_format(file_bytes, filename):
         header_start_row = max(1, r - _HEADER_LOOKBACK_ROWS)
         header_end_row = min(ws.max_row, r + 1)
         header_rows = [hr for hr in range(header_start_row, header_end_row + 1)]
-        max_scan_col = min(ws.max_column, _HEADER_SCAN_MAX_COLUMN)
+        max_scan_col = min(ws.max_column, _MAX_HEADER_SCAN_COLUMN)
         for ci in range(1, max_scan_col + 1):
             parts = []
             for hr in header_rows:
@@ -128,8 +131,8 @@ def _parse_official_format(file_bytes, filename):
                 continue
             if 'FROM' in labels and from_col is None:
                 from_col = ci
-            # Match "TO" as a standalone token to avoid false positives (e.g., "STATION").
-            elif re.search(r'(^|[^A-Z])TO([^A-Z]|$)', labels) and to_col is None:
+            # Use strict standalone matching for TO to avoid false positives (e.g., in STATION).
+            elif re.search(r'\bTO\b', labels) and to_col is None:
                 to_col = ci
             elif 'DESIGNATION' in labels and desig_col is None:
                 desig_col = ci
