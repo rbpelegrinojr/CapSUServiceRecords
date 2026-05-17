@@ -18,7 +18,11 @@ ALLOWED_EXTENSIONS = {'xlsx'}
 # Row-scan limits used when parsing the official CapSU Service Records form
 _MAX_EMP_INFO_SEARCH_ROWS = 50   # rows to search for the NAME / BIRTH labels
 _MAX_HEADER_SEARCH_ROWS = 35     # rows after NAME row to search for the FROM/TO sub-header
+_MAX_EMP_INFO_SCAN_COLUMN = 12
+_HEADER_LOOKBACK_ROWS = 2
+_MAX_HEADER_SCAN_COLUMN = 20
 _MAX_DISPLAYED_ERRORS = 10
+_TO_HEADER_PATTERN = re.compile(r'\bTO\b')
 
 
 def _allowed_file(filename):
@@ -70,13 +74,28 @@ def _parse_official_format(file_bytes, filename):
         )
 
     # ── Read employee information ────────────────────────────────────────────
-    # Standard layout: col B = Surname, col C = Given Name, col D = Middle Name
-    surname = cv(name_row, 2).upper()
-    given_name = cv(name_row, 3).upper()
-    middle_name = cv(name_row, 4).upper() or None
+    # Handle both strict B/C/D layout and merged-cell official template layout.
+    max_emp_info_col = min(ws.max_column, _MAX_EMP_INFO_SCAN_COLUMN)
+    def safe_upper(value):
+        return (value or '').upper()
 
-    birth_date = cv(birth_row, 2) if birth_row else ''
-    birth_place = cv(birth_row, 4) if birth_row else ''
+    name_values = []
+    for c in range(2, max_emp_info_col + 1):
+        value = cv(name_row, c)
+        if value:
+            name_values.append(value)
+    surname = safe_upper(name_values[0] if len(name_values) >= 1 else '')
+    given_name = safe_upper(name_values[1] if len(name_values) >= 2 else '')
+    middle_name = safe_upper(name_values[2] if len(name_values) >= 3 else '') or None
+
+    birth_values = []
+    if birth_row:
+        for c in range(2, max_emp_info_col + 1):
+            value = cv(birth_row, c)
+            if value:
+                birth_values.append(value)
+    birth_date = birth_values[0] if len(birth_values) >= 1 else ''
+    birth_place = birth_values[1] if len(birth_values) >= 2 else ''
 
     if not surname or not given_name:
         return None, None, (
@@ -96,27 +115,41 @@ def _parse_official_format(file_bytes, filename):
         row_upper = [cv(r, c).upper().replace('\n', ' ') for c in range(1, 13)]
         if 'FROM' not in row_upper:
             continue
-        # Map sub-header labels to column indices (1-based)
-        for ci, label in enumerate(row_upper, start=1):
-            if label == 'FROM' and from_col is None:
+
+        # Some official files split the header across multiple rows.
+        header_start_row = max(1, r - _HEADER_LOOKBACK_ROWS)
+        header_end_row = min(ws.max_row, r + 1)
+        header_rows = [hr for hr in range(header_start_row, header_end_row + 1)]
+        max_scan_col = min(ws.max_column, _MAX_HEADER_SCAN_COLUMN)
+        for ci in range(1, max_scan_col + 1):
+            parts = []
+            for hr in header_rows:
+                value = cv(hr, ci)
+                if value:
+                    parts.append(value.upper().replace('\n', ' '))
+            labels = ' '.join(parts)
+            if not labels:
+                continue
+            if 'FROM' in labels and from_col is None:
                 from_col = ci
-            elif label == 'TO' and to_col is None:
+            # Use strict standalone matching for TO to avoid false positives (e.g., in STATION).
+            elif _TO_HEADER_PATTERN.search(labels) and to_col is None:
                 to_col = ci
-            elif 'DESIGNATION' in label and desig_col is None:
+            elif 'DESIGNATION' in labels and desig_col is None:
                 desig_col = ci
-            elif label == 'STATUS' and status_col is None:
+            elif 'STATUS' in labels and status_col is None:
                 status_col = ci
-            elif 'SALARY' in label and salary_col is None:
+            elif 'SALARY' in labels and salary_col is None:
                 salary_col = ci
-            elif ('STATION' in label or 'PLACE' in label) and station_col is None:
+            elif ('STATION' in labels or 'PLACE' in labels) and station_col is None:
                 station_col = ci
-            elif label == 'BRANCH' and branch_col is None:
+            elif 'BRANCH' in labels and branch_col is None:
                 branch_col = ci
-            elif ('PAY' in label or 'W/O' in label) and lv_col is None:
+            elif ('PAY' in labels or 'W/O' in labels) and lv_col is None:
                 lv_col = ci
-            elif label == 'DATE' and sep_date_col is None:
+            elif 'SEPARATION' in labels and 'DATE' in labels and sep_date_col is None:
                 sep_date_col = ci
-            elif label == 'CAUSE' and sep_cause_col is None:
+            elif 'CAUSE' in labels and sep_cause_col is None:
                 sep_cause_col = ci
         data_start_row = r + 1
         break
