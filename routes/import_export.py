@@ -25,7 +25,7 @@ _MAX_DISPLAYED_ERRORS = 10
 _TO_HEADER_PATTERN = re.compile(r'\bTO\b')
 _DATEISH_PATTERN = re.compile(
     r'^(?:\d{1,2}[-/]\d{1,2}[-/]\d{2,4}|'
-    r'(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)\b.*\d{2,4})$',
+    r'(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC)\b.*\d{2,4})$',
     re.IGNORECASE,
 )
 _TABLE_END_MARKERS = ('ISSUED IN COMPLIANCE', 'CERTIFIED CORRECT')
@@ -90,6 +90,7 @@ def _parse_official_format(file_bytes, filename):
         text = (value or '').strip().upper()
         if not text:
             return False
+        # Accept common ditto variants (e.g., DO, -DO-, D O).
         normalized = re.sub(r'[\s-]+', '', text)
         if normalized in {'DO', 'DITTO'}:
             return True
