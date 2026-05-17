@@ -94,7 +94,7 @@ def _parse_official_format(file_bytes, filename):
         normalized = re.sub(r'[\s-]+', '', text)
         if normalized in {'DO', 'DITTO'}:
             return True
-        return bool(_DATEISH_PATTERN.search(text))
+        return bool(_DATEISH_PATTERN.match(text))
 
     name_values = []
     for c in range(2, max_emp_info_col + 1):
