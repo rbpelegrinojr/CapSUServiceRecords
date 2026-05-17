@@ -39,23 +39,37 @@
     <iframe id="pdfFrame" src="{{ pdf_url }}" title="Service Record PDF"></iframe>
     <script>
         (function () {
-            var PRINT_DELAY_MS = 1200; // Allow iframe PDF viewer time to initialize before print()
             var frame = document.getElementById('pdfFrame');
             var errorMsg = document.getElementById('errorMsg');
+            var pdfUrl = {{ pdf_url|tojson }};
 
             frame.addEventListener('error', function () {
                 frame.style.display = 'none';
                 errorMsg.style.display = 'block';
             });
 
-            // Wait for the iframe to finish loading, then trigger print on the
-            // main window. Calling print() on contentWindow is blocked by most
-            // browsers when the iframe contains a PDF, so window.print() is the
-            // reliable cross-browser approach.
-            frame.addEventListener('load', function () {
-                setTimeout(function () {
-                    window.print();
-                }, PRINT_DELAY_MS);
+            document.addEventListener('keydown', function (event) {
+                var key = (event.key || '').toLowerCase();
+                var isPrintShortcut = (event.ctrlKey || event.metaKey) && (event.code === 'KeyP' || key === 'p');
+                if (!isPrintShortcut) return;
+
+                event.preventDefault();
+
+                try {
+                    if (frame.contentWindow) {
+                        frame.contentWindow.focus();
+                        frame.contentWindow.print();
+                        return;
+                    }
+                } catch (err) {
+                    console.warn('Direct iframe print failed, opening PDF in a new tab instead.', err);
+                }
+
+                // Last fallback: open the PDF directly so browser print still shows content.
+                if (!frame.contentWindow) {
+                    console.warn('PDF frame window is unavailable, opening PDF in a new tab instead.');
+                }
+                window.open(pdfUrl, '_blank');
             });
         })();
     </script>

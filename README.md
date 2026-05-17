@@ -130,7 +130,7 @@ Each row = one service record. Rows with the same Surname + Given Name are linke
 
 1. Open an employee's profile
 2. Click **Print Service Record**
-3. A PDF preview opens in a new tab and triggers the print dialog
+3. A PDF preview opens in a new tab (use **Ctrl+P** / **Cmd+P** to print)
 
 > **Requirement:** LibreOffice must be installed (Linux/macOS) or Microsoft Word (Windows) for PDF generation to work.
 
