@@ -24,8 +24,8 @@ _MAX_HEADER_SCAN_COLUMN = 20
 _MAX_DISPLAYED_ERRORS = 10
 _TO_HEADER_PATTERN = re.compile(r'\bTO\b')
 _DATEISH_PATTERN = re.compile(
-    r'(^\d{1,2}[-/]\d{1,2}[-/]\d{2,4}$|'
-    r'^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)\b.*\d{2,4}$)',
+    r'^(?:\d{1,2}[-/]\d{1,2}[-/]\d{2,4}|'
+    r'(?:JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC)\b.*\d{2,4})$',
     re.IGNORECASE,
 )
 _TABLE_END_MARKERS = ('ISSUED IN COMPLIANCE', 'CERTIFIED CORRECT')
@@ -90,7 +90,8 @@ def _parse_official_format(file_bytes, filename):
         text = (value or '').strip().upper()
         if not text:
             return False
-        if text in {'-DO-', 'DO', 'DITTO'}:
+        normalized = re.sub(r'[\s-]+', '', text)
+        if normalized in {'DO', 'DITTO'}:
             return True
         return bool(_DATEISH_PATTERN.search(text))
 
@@ -211,7 +212,7 @@ def _parse_official_format(file_bytes, filename):
             continue
 
         salary_raw = cv(r, salary_col) if salary_col else ''
-        has_other_service_fields = any((
+        has_companion_fields = any((
             to_val,
             designation_val,
             status_val,
@@ -223,7 +224,7 @@ def _parse_official_format(file_bytes, filename):
             sep_cause_val,
         ))
         # Keep only table rows with a date-like FROM value and at least one companion field.
-        if not looks_like_service_from(from_val) or not has_other_service_fields:
+        if not looks_like_service_from(from_val) or not has_companion_fields:
             continue
 
         monthly_salary = None
