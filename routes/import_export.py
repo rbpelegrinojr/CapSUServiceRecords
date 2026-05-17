@@ -23,6 +23,12 @@ _HEADER_LOOKBACK_ROWS = 2
 _MAX_HEADER_SCAN_COLUMN = 20
 _MAX_DISPLAYED_ERRORS = 10
 _TO_HEADER_PATTERN = re.compile(r'\bTO\b')
+_DATEISH_PATTERN = re.compile(
+    r'(^\d{1,4}[-/]\d{1,2}[-/]\d{1,4}$|^\d{1,2}/\d{1,2}/\d{2,4}$|'
+    r'^(JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|SEPT|OCT|NOV|DEC))',
+    re.IGNORECASE,
+)
+_TABLE_END_MARKERS = ('ISSUED IN COMPLIANCE', 'CERTIFIED CORRECT')
 
 
 def _allowed_file(filename):
@@ -78,6 +84,14 @@ def _parse_official_format(file_bytes, filename):
     max_emp_info_col = min(ws.max_column, _MAX_EMP_INFO_SCAN_COLUMN)
     def safe_upper(value):
         return (value or '').upper()
+
+    def looks_like_service_from(value):
+        text = (value or '').strip().upper()
+        if not text:
+            return False
+        if text in {'-DO-', 'DO', 'DITTO'}:
+            return True
+        return bool(_DATEISH_PATTERN.search(text))
 
     name_values = []
     for c in range(2, max_emp_info_col + 1):
@@ -177,13 +191,39 @@ def _parse_official_format(file_bytes, filename):
         if not any(row_vals):
             continue
 
+        row_text = ' '.join(v.upper() for v in row_vals if v)
+        if any(marker in row_text for marker in _TABLE_END_MARKERS):
+            break
+
         from_val = cv(r, from_col)
+        to_val = cv(r, to_col) if to_col else ''
+        designation_val = cv(r, desig_col) if desig_col else ''
+        status_val = cv(r, status_col) if status_col else ''
+        station_val = cv(r, station_col) if station_col else ''
+        branch_val = cv(r, branch_col) if branch_col else ''
+        lv_val = cv(r, lv_col) if lv_col else ''
+        sep_date_val = cv(r, sep_date_col) if sep_date_col else ''
+        sep_cause_val = cv(r, sep_cause_col) if sep_cause_col else ''
 
         # Skip rows that look like repeated headers or stray labels
         if from_val.upper() in ('FROM', 'SERVICE', '(INCLUSIVE DATES)', ''):
             continue
 
         salary_raw = cv(r, salary_col) if salary_col else ''
+        has_other_service_fields = any([
+            to_val,
+            designation_val,
+            status_val,
+            salary_raw,
+            station_val,
+            branch_val,
+            lv_val,
+            sep_date_val,
+            sep_cause_val,
+        ])
+        if not looks_like_service_from(from_val) or not has_other_service_fields:
+            continue
+
         monthly_salary = None
         try:
             m = re.search(r'\d+\.?\d*', salary_raw.replace(',', ''))
@@ -194,16 +234,16 @@ def _parse_official_format(file_bytes, filename):
 
         records.append({
             'date_from': from_val,
-            'date_to': cv(r, to_col) if to_col else '',
-            'designation': cv(r, desig_col) if desig_col else '',
-            'status': cv(r, status_col) if status_col else '',
+            'date_to': to_val,
+            'designation': designation_val,
+            'status': status_val,
             'monthly_salary': monthly_salary,
             'annual_salary': None,
-            'station_place_of': cv(r, station_col) if station_col else '',
-            'branch': cv(r, branch_col) if branch_col else '',
-            'lv_abs_wo_pay': cv(r, lv_col) if lv_col else '',
-            'separation_date': cv(r, sep_date_col) if sep_date_col else '',
-            'separation_cause': cv(r, sep_cause_col) if sep_cause_col else '',
+            'station_place_of': station_val,
+            'branch': branch_val,
+            'lv_abs_wo_pay': lv_val,
+            'separation_date': sep_date_val,
+            'separation_cause': sep_cause_val,
         })
 
     emp_data = {
