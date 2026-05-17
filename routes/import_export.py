@@ -74,8 +74,9 @@ def _parse_official_format(file_bytes, filename):
 
     # ── Read employee information ────────────────────────────────────────────
     # Handle both strict B/C/D layout and merged-cell official template layout.
+    max_emp_info_col = min(ws.max_column, _EMP_INFO_SCAN_MAX_COLUMN)
     name_values = []
-    for c in range(2, min(ws.max_column, _EMP_INFO_SCAN_MAX_COLUMN) + 1):
+    for c in range(2, max_emp_info_col + 1):
         value = cv(name_row, c)
         if value:
             name_values.append(value)
@@ -85,7 +86,7 @@ def _parse_official_format(file_bytes, filename):
 
     birth_values = []
     if birth_row:
-        for c in range(2, min(ws.max_column, _EMP_INFO_SCAN_MAX_COLUMN) + 1):
+        for c in range(2, max_emp_info_col + 1):
             value = cv(birth_row, c)
             if value:
                 birth_values.append(value)
@@ -112,9 +113,9 @@ def _parse_official_format(file_bytes, filename):
             continue
 
         # Some official files split the header across multiple rows.
-        header_rows = [
-            hr for hr in range(max(1, r - _HEADER_LOOKBACK_ROWS), min(ws.max_row, r + 1) + 1)
-        ]
+        header_start_row = max(1, r - _HEADER_LOOKBACK_ROWS)
+        header_end_row = min(ws.max_row, r + 1)
+        header_rows = [hr for hr in range(header_start_row, header_end_row + 1)]
         max_scan_col = min(ws.max_column, _HEADER_SCAN_MAX_COLUMN)
         for ci in range(1, max_scan_col + 1):
             parts = []
