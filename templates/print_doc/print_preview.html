@@ -49,7 +49,8 @@
             });
 
             document.addEventListener('keydown', function (event) {
-                var isPrintShortcut = (event.ctrlKey || event.metaKey) && event.code === 'KeyP';
+                var key = (event.key || '').toLowerCase();
+                var isPrintShortcut = (event.ctrlKey || event.metaKey) && (event.code === 'KeyP' || key === 'p');
                 if (!isPrintShortcut) return;
 
                 event.preventDefault();
@@ -61,10 +62,13 @@
                         return;
                     }
                 } catch (err) {
-                    console.warn('Unable to trigger iframe print, opening PDF in a new tab instead.', err);
+                    console.warn('Direct iframe print failed, opening PDF in a new tab instead.', err);
                 }
 
                 // Last fallback: open the PDF directly so browser print still shows content.
+                if (!frame.contentWindow) {
+                    console.warn('PDF frame window is unavailable, opening PDF in a new tab instead.');
+                }
                 window.open(pdfUrl, '_blank');
             });
         })();
