@@ -16,6 +16,22 @@ from models.employee import Employee
 from models.service_record import ServiceRecord
 from models.setting import Setting
 
+# Optional Windows COM modules – only available on Windows
+try:
+    import pythoncom as _pythoncom
+    import pywintypes as _pywintypes
+    _WINDOWS_COM_AVAILABLE = True
+except ImportError:
+    _pythoncom = None
+    _pywintypes = None
+    _WINDOWS_COM_AVAILABLE = False
+
+# Exceptions that indicate a PDF-conversion failure.  pywintypes.com_error is
+# included on Windows so that cancelling the print dialog is handled gracefully.
+_CONVERSION_ERRORS = (OSError, RuntimeError, ValueError, NotImplementedError, subprocess.CalledProcessError)
+if _WINDOWS_COM_AVAILABLE:
+    _CONVERSION_ERRORS = (*_CONVERSION_ERRORS, _pywintypes.com_error)
+
 print_doc_bp = Blueprint('print_doc', __name__)
 
 
@@ -162,15 +178,13 @@ def print_service_record(employee_id):
                     _set_cell_text(cells[i], val, font_size=8)
                     _set_cell_borders(cells[i])
 
+    # _com_initialized must be defined before the outer try so the finally
+    # block can reference it regardless of whether CoInitialize was reached.
+    _com_initialized = False
     try:
-        _com_initialized = False
-        if platform.system() == 'Windows':
-            try:
-                import pythoncom
-                pythoncom.CoInitialize()
-                _com_initialized = True
-            except ImportError:
-                pass
+        if platform.system() == 'Windows' and _WINDOWS_COM_AVAILABLE:
+            _pythoncom.CoInitialize()
+            _com_initialized = True
 
         try:
             with tempfile.TemporaryDirectory() as temp_dir:
@@ -184,8 +198,8 @@ def print_service_record(employee_id):
                     pdf_bytes = pdf_file.read()
         finally:
             if _com_initialized:
-                pythoncom.CoUninitialize()
-    except Exception:
+                _pythoncom.CoUninitialize()
+    except _CONVERSION_ERRORS:
         current_app.logger.exception('PDF conversion failed for employee_id=%s', employee_id)
         flash(
             'PDF conversion failed. Make sure LibreOffice (Linux/macOS) or Microsoft Word (Windows) '
