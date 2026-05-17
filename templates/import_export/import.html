@@ -45,6 +45,33 @@
             </div>
         </div>
 
+        <!-- ── Combine official files into one flat file ── -->
+        <div class="card shadow-sm mb-4 border-warning">
+            <div class="card-header bg-warning bg-opacity-10 fw-semibold text-warning-emphasis">
+                <i class="bi bi-collection me-2"></i>Combine Official Files into One Flat Spreadsheet
+            </div>
+            <div class="card-body">
+                <p class="small text-muted mb-3">
+                    Upload multiple official per-employee files and download one combined spreadsheet
+                    compatible with the flat import format below.
+                </p>
+                <form method="post" action="{{ url_for('import_export.combine_files') }}"
+                      enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Select Official Format .xlsx File(s)</label>
+                        <input type="file" name="files" class="form-control" accept=".xlsx"
+                               multiple required>
+                        <div class="form-text">
+                            Hold <kbd>Ctrl</kbd> (or <kbd>⌘</kbd> on Mac) to select multiple files at once.
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-warning">
+                        <i class="bi bi-download me-1"></i>Combine &amp; Download
+                    </button>
+                </form>
+            </div>
+        </div>
+
         <!-- ── Flat tabular format ── -->
         <div class="card shadow-sm mb-4">
             <div class="card-header bg-white fw-semibold">

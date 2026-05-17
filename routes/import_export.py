@@ -375,6 +375,72 @@ def import_official_records():
     return redirect(url_for('import_export.import_records'))
 
 
+@import_export_bp.route('/combine-files', methods=['POST'])
+def combine_files():
+    """Combine multiple official-format files into one flat system-format file."""
+    files = request.files.getlist('files')
+    if not files or all(f.filename == '' for f in files):
+        flash('No files selected.', 'danger')
+        return redirect(url_for('import_export.import_records'))
+
+    rows = []
+    all_errors = []
+
+    for f in files:
+        if f.filename == '':
+            continue
+        if not _allowed_file(f.filename):
+            all_errors.append(f'{f.filename}: Only .xlsx files are allowed.')
+            continue
+
+        emp_data, records, err = _parse_official_format(f.read(), f.filename)
+        if err:
+            all_errors.append(err)
+            continue
+
+        for rec in records:
+            rows.append({
+                'Surname': emp_data['surname'],
+                'Given Name': emp_data['given_name'],
+                'Middle Name': emp_data.get('middle_name') or '',
+                'Birth Date': emp_data.get('birth_date') or '',
+                'Birth Place': emp_data.get('birth_place') or '',
+                'Date From': rec['date_from'] or '',
+                'Date To': rec['date_to'] or '',
+                'Designation': rec['designation'] or '',
+                'Status': rec['status'] or '',
+                'Monthly Salary': rec['monthly_salary'] if rec['monthly_salary'] is not None else '',
+                'Annual Salary': rec['annual_salary'] if rec['annual_salary'] is not None else '',
+                'Station/Place of': rec['station_place_of'] or '',
+                'Branch': rec['branch'] or '',
+                'LV ABS WO Pay': rec['lv_abs_wo_pay'] or '',
+                'Separation Date': rec['separation_date'] or '',
+                'Separation Cause': rec['separation_cause'] or '',
+            })
+
+    for err in all_errors[:10]:
+        flash(err, 'warning')
+    if len(all_errors) > 10:
+        flash(f'… and {len(all_errors) - 10} more errors.', 'warning')
+
+    if not rows:
+        flash('No records could be read from the uploaded file(s).', 'danger')
+        return redirect(url_for('import_export.import_records'))
+
+    df = pd.DataFrame(rows)
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Service Records')
+    output.seek(0)
+
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name='combined_service_records.xlsx',
+    )
+
+
 @import_export_bp.route('/export/<int:employee_id>')
 def export_employee(employee_id):
     emp = Employee.query.get_or_404(employee_id)
