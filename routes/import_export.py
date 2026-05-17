@@ -22,6 +22,7 @@ _MAX_EMP_INFO_SCAN_COLUMN = 12
 _HEADER_LOOKBACK_ROWS = 2
 _MAX_HEADER_SCAN_COLUMN = 20
 _MAX_DISPLAYED_ERRORS = 10
+_TO_HEADER_PATTERN = re.compile(r'\bTO\b')
 
 
 def _allowed_file(filename):
@@ -83,9 +84,9 @@ def _parse_official_format(file_bytes, filename):
         value = cv(name_row, c)
         if value:
             name_values.append(value)
-    surname = safe_upper(name_values[0] if len(name_values) >= 1 else cv(name_row, 2))
-    given_name = safe_upper(name_values[1] if len(name_values) >= 2 else cv(name_row, 3))
-    middle_name = safe_upper(name_values[2] if len(name_values) >= 3 else cv(name_row, 4)) or None
+    surname = safe_upper(name_values[0] if len(name_values) >= 1 else '')
+    given_name = safe_upper(name_values[1] if len(name_values) >= 2 else '')
+    middle_name = safe_upper(name_values[2] if len(name_values) >= 3 else '') or None
 
     birth_values = []
     if birth_row:
@@ -93,8 +94,8 @@ def _parse_official_format(file_bytes, filename):
             value = cv(birth_row, c)
             if value:
                 birth_values.append(value)
-    birth_date = birth_values[0] if len(birth_values) >= 1 else (cv(birth_row, 2) if birth_row else '')
-    birth_place = birth_values[1] if len(birth_values) >= 2 else (cv(birth_row, 4) if birth_row else '')
+    birth_date = birth_values[0] if len(birth_values) >= 1 else ''
+    birth_place = birth_values[1] if len(birth_values) >= 2 else ''
 
     if not surname or not given_name:
         return None, None, (
@@ -132,7 +133,7 @@ def _parse_official_format(file_bytes, filename):
             if 'FROM' in labels and from_col is None:
                 from_col = ci
             # Use strict standalone matching for TO to avoid false positives (e.g., in STATION).
-            elif re.search(r'\bTO\b', labels) and to_col is None:
+            elif _TO_HEADER_PATTERN.search(labels) and to_col is None:
                 to_col = ci
             elif 'DESIGNATION' in labels and desig_col is None:
                 desig_col = ci
