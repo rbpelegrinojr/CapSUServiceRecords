@@ -1,6 +1,7 @@
 import io
 import os
 import re
+from datetime import datetime
 
 import openpyxl
 import pandas as pd
@@ -438,7 +439,7 @@ def combine_files():
         output,
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         as_attachment=True,
-        download_name='combined_service_records.xlsx',
+        download_name=f"combined_service_records_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx",
     )
 
 
