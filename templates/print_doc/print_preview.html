@@ -22,6 +22,12 @@
             color: #842029;
             background: #f8d7da;
         }
+        @media print {
+            @page {
+                size: {{ page_width }}in {{ page_height }}in;
+                margin: 0;
+            }
+        }
     </style>
 </head>
 <body>
